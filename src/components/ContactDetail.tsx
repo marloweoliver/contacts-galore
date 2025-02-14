@@ -1,4 +1,3 @@
-'use'
 import React, { useState } from 'react';
 import { useContactStore } from '../lib/store';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -27,6 +26,7 @@ import { EditIdentity } from './EditIdentity';
 import { create, BaseDirectory, writeTextFile, writeFile } from '@tauri-apps/plugin-fs';
 import { saveAs } from 'file-saver';
 import { save } from "@tauri-apps/plugin-dialog";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 export const ContactDetail: React.FC = () => {
     const { contacts, selectedContactId, fieldSearchQuery, setFieldSearchQuery, addField, setSelectedContact, deleteContact, setWho } = useContactStore();
@@ -81,7 +81,7 @@ export const ContactDetail: React.FC = () => {
                 doc.setFontSize(16);
                 doc.text(selectedContact.name, 20, 20);
                 doc.setFontSize(12);
-                
+
                 let yPosition = 40;
                 selectedContact.fields.forEach(field => {
                     doc.text(`${field.label}: ${field.value}`, 20, yPosition);
@@ -94,7 +94,7 @@ export const ContactDetail: React.FC = () => {
                         extensions: ['pdf']
                     }]
                 });
-                
+
                 if (filePath) {
                     const pdfBytes = doc.output('arraybuffer');
                     await writeFile(filePath, new Uint8Array(pdfBytes));
@@ -115,7 +115,7 @@ export const ContactDetail: React.FC = () => {
 
     return (
         <motion.div
-            className="fixed inset-0 bg-zinc-950 z-50 flex flex-col"
+            className="fixed inset-0 bg-zinc-950 z-50 flex flex-col h-full max-h-screen overflow-hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -124,8 +124,8 @@ export const ContactDetail: React.FC = () => {
                 <EditIdentity open={isEditingIdentity} onClose={() => setIsEditingIdentity(false)} selectedContactId={selectedContactId} />
             )}
 
-            <Card className="flex-1 border-0 rounded-none bg-zinc-950">
-                <CardHeader className="flex flex-row sticky top-0 bg-zinc-950/80 backdrop-blur-sm z-10 items-center justify-between border-b border-zinc-900">
+            <Card className="flex-1 border-0 rounded-none bg-zinc-950 flex flex-col h-full overflow-hidden">
+                <CardHeader className="flex flex-row sticky top-0 bg-zinc-950/80 backdrop-blur-sm z-10 items-center justify-between border-b border-zinc-900 flex-shrink-0">
                     <div className="flex items-center gap-2">
                         <Button
                             variant="ghost"
@@ -149,16 +149,6 @@ export const ContactDetail: React.FC = () => {
                         >
                             <Pencil className="h-4 w-4" />
                         </Button>
-                        {/* 
-                        TODO: Fix broken download functionality
-                        <Button
-                            size="icon"
-                            variant="notStupidGhost"
-                            className="h-8 w-8 rounded-full hover:bg-zinc-900 text-zinc-400"
-                            onClick={() => setShowExportDialog(true)}
-                        >
-                            <Download className="h-4 w-4" />
-                        </Button> */}
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button
@@ -191,8 +181,8 @@ export const ContactDetail: React.FC = () => {
                         </AlertDialog>
                     </div>
                 </CardHeader>
-                <CardContent className="w-full p-4">
-                    <div className="relative flex mb-4 items-center gap-2">
+                <CardContent className="flex-1 p-4 flex flex-col h-full overflow-hidden">
+                    <div className="relative flex mb-4 items-center gap-2 flex-shrink-0">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
                             <Input
@@ -210,17 +200,20 @@ export const ContactDetail: React.FC = () => {
                             <Plus className="h-4 w-4" />
                         </Button>
                     </div>
-                    <div>
-                        {filteredFields.map((field) => (
-                            <FieldEditor
-                                key={field.id}
-                                contactId={selectedContact.id}
-                                field={field}
-                                selectedFieldId={selectedFieldId}
-                                setSelectedFieldId={(id: string | null) => setSelectedFieldId(id)}
-                            />
-                        ))}
-                    </div>
+                    <ScrollArea className="flex-1 h-full overflow-y-auto -mx-4 px-4">
+                        <div className="space-y-2">
+                            {filteredFields.map((field) => (
+                                <FieldEditor
+                                    key={field.id}
+                                    contactId={selectedContact.id}
+                                    field={field}
+                                    selectedFieldId={selectedFieldId}
+                                    setSelectedFieldId={(id: string | null) => setSelectedFieldId(id)}
+                                />
+                            ))}
+                        </div>
+                        <ScrollBar orientation="vertical" />
+                    </ScrollArea>
                 </CardContent>
             </Card>
 
@@ -258,7 +251,7 @@ export const ContactDetail: React.FC = () => {
                             </DialogClose>
                             <Button
                                 onClick={handleExport}
-                                className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-xl px-4 h-11 "
+                                className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-xl px-4 h-11"
                             >
                                 <Save className="h-4 w-4 mr-2" />
                                 Export
