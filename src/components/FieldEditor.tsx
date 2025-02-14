@@ -63,7 +63,7 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({ contactId, field, sele
                         isSelected ? "opacity-100 translate-x-0" : "opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
                     }`}>
                         <Button
-                            variant="ghost"
+                            variant="notStupidGhost"
                             size="icon"
                             className="h-8 w-8 rounded-full bg-zinc-800/50 hover:bg-zinc-700/50 text-zinc-400"
                             onClick={(e) => {

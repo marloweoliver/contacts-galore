@@ -52,7 +52,6 @@ export const ContactList: React.FC = () => {
 
     return (
         <div className="h-full flex flex-col bg-zinc-950">
-
             <div className="p-4">
                 <div className="relative flex items-center gap-2">
                     <div className="relative flex-1">
@@ -93,12 +92,12 @@ export const ContactList: React.FC = () => {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
                             transition={{ duration: 0.2 }}
-                            drag="x"
                         >
+                            {/* TODO: Fix this ugly highlighting */}
                             <Button
                                 variant="notStupidGhost"
                                 className={`w-full justify-between px-4 py-3 h-16 mb-1 rounded-xl ${selectedContactId === contact.id
-                                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                    ? 'bg-gradient-to-br from-zinc-900/90 to-zinc-900 text-white'
                                     : 'text-zinc-300'
                                     }`}
                                 onClick={() => setSelectedContact(contact.id)}
@@ -115,7 +114,7 @@ export const ContactList: React.FC = () => {
                                         <span className={'font-medium text-white'}>
                                             {contact.name}
                                         </span>
-                                        <span className="text-sm text-zinc-500">test Engineer</span>
+                                        <span className="text-sm text-zinc-500">{contact.who}</span>
                                     </div>
                                 </div>
                                 <Button

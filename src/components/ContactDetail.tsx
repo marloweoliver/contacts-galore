@@ -4,7 +4,7 @@ import { useContactStore } from '../lib/store';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, ArrowLeft, Trash2, Download } from 'lucide-react';
+import { Plus, Search, ArrowLeft, Trash2, Download, Pencil, Save } from 'lucide-react';
 import { FieldEditor } from './FieldEditor';
 import { motion } from 'framer-motion';
 import {
@@ -18,18 +18,24 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { jsPDF } from 'jspdf'; // For PDF export
+import { jsPDF } from 'jspdf';
 import { toast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectLabel, SelectTrigger, SelectValue } from './ui/select';
 import { SelectGroup } from '@radix-ui/react-select';
+import { Dialog, DialogHeader, DialogTitle, DialogContent, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from './ui/dialog';
+import { EditIdentity } from './EditIdentity';
+import { create, BaseDirectory, writeTextFile, writeFile } from '@tauri-apps/plugin-fs';
+import { saveAs } from 'file-saver';
+import { save } from "@tauri-apps/plugin-dialog";
 
 export const ContactDetail: React.FC = () => {
-    const { contacts, selectedContactId, fieldSearchQuery, setFieldSearchQuery, addField, setSelectedContact, deleteContact } = useContactStore();
+    const { contacts, selectedContactId, fieldSearchQuery, setFieldSearchQuery, addField, setSelectedContact, deleteContact, setWho } = useContactStore();
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
     const [showExportDialog, setShowExportDialog] = useState(false);
     const [exportFormat, setExportFormat] = useState<'pdf' | 'markdown'>('pdf');
-
+    const [who, setWhoState] = React.useState('');
+    const [isEditingIdentity, setIsEditingIdentity] = useState(false);
     const selectedContact = contacts.find(c => c.id === selectedContactId);
 
     if (!selectedContact) {
@@ -49,28 +55,56 @@ export const ContactDetail: React.FC = () => {
             return sortDirection === 'asc' ? a.createdAt - b.createdAt : b.createdAt - a.createdAt;
         });
 
-    const handleExport = () => {
+    const handleExport = async () => {
         if (exportFormat === 'markdown') {
             const markdownContent = `# ${selectedContact.name}\n\n` +
                 selectedContact.fields.map(field => `**${field.label}:** ${field.value}\n`).join('\n');
-            const blob = new Blob([markdownContent], { type: 'text/markdown' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${selectedContact.name}.md`;
-            a.click();
-            URL.revokeObjectURL(url);
+            try {
+                const filePath = await save({
+                    filters: [{
+                        name: 'Markdown',
+                        extensions: ['md']
+                    }]
+                });
+                if (filePath) {
+                    await writeTextFile(filePath, markdownContent);
+                }
+            } catch (error) {
+                toast({
+                    variant: "destructive",
+                    description: "Failed to save markdown file.",
+                });
+            }
         } else {
-            const doc = new jsPDF();
-            doc.setFontSize(16);
-            doc.text(selectedContact.name, 20, 20);
-            doc.setFontSize(12);
-            let y = 30;
-            selectedContact.fields.forEach(field => {
-                doc.text(`${field.label}: ${field.value}`, 20, y);
-                y += 10;
-            });
-            doc.save(`${selectedContact.name}.pdf`);
+            try {
+                const doc = new jsPDF();
+                doc.setFontSize(16);
+                doc.text(selectedContact.name, 20, 20);
+                doc.setFontSize(12);
+                
+                let yPosition = 40;
+                selectedContact.fields.forEach(field => {
+                    doc.text(`${field.label}: ${field.value}`, 20, yPosition);
+                    yPosition += 10;
+                });
+
+                const filePath = await save({
+                    filters: [{
+                        name: 'PDF',
+                        extensions: ['pdf']
+                    }]
+                });
+                
+                if (filePath) {
+                    const pdfBytes = doc.output('arraybuffer');
+                    await writeFile(filePath, new Uint8Array(pdfBytes));
+                }
+            } catch (error) {
+                toast({
+                    variant: "destructive",
+                    description: "Failed to save PDF file.",
+                });
+            }
         }
         setShowExportDialog(false);
         toast({
@@ -86,6 +120,10 @@ export const ContactDetail: React.FC = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
         >
+            {selectedContactId && (
+                <EditIdentity open={isEditingIdentity} onClose={() => setIsEditingIdentity(false)} selectedContactId={selectedContactId} />
+            )}
+
             <Card className="flex-1 border-0 rounded-none bg-zinc-950">
                 <CardHeader className="flex flex-row sticky top-0 bg-zinc-950/80 backdrop-blur-sm z-10 items-center justify-between border-b border-zinc-900">
                     <div className="flex items-center gap-2">
@@ -97,9 +135,30 @@ export const ContactDetail: React.FC = () => {
                         >
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
-                        <p className="text-zinc-200 font-medium">{selectedContact.name}</p>
+                        <div className="flex flex-col items-start">
+                            <span className="text-zinc-200 font-medium">{selectedContact.name}</span>
+                            <span className="text-sm text-zinc-500">{selectedContact.who}</span>
+                        </div>
                     </div>
                     <div className="flex gap-2">
+                        <Button
+                            size="icon"
+                            variant="notStupidGhost"
+                            className="h-8 w-8 rounded-full hover:bg-zinc-900 text-zinc-400"
+                            onClick={() => setIsEditingIdentity(true)}
+                        >
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                        {/* 
+                        TODO: Fix broken download functionality
+                        <Button
+                            size="icon"
+                            variant="notStupidGhost"
+                            className="h-8 w-8 rounded-full hover:bg-zinc-900 text-zinc-400"
+                            onClick={() => setShowExportDialog(true)}
+                        >
+                            <Download className="h-4 w-4" />
+                        </Button> */}
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button
@@ -121,7 +180,7 @@ export const ContactDetail: React.FC = () => {
                                     <AlertDialogCancel className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700">
                                         Nevermind
                                     </AlertDialogCancel>
-                                    <AlertDialogAction 
+                                    <AlertDialogAction
                                         onClick={() => selectedContactId && deleteContact(selectedContactId)}
                                         className="bg-red-600 hover:bg-red-700"
                                     >
@@ -130,14 +189,6 @@ export const ContactDetail: React.FC = () => {
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
-                        <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 rounded-full hover:bg-zinc-900 text-zinc-400"
-                            onClick={() => setShowExportDialog(true)}
-                        >
-                            <Download className="h-4 w-4" />
-                        </Button>
                     </div>
                 </CardHeader>
                 <CardContent className="w-full p-4">
@@ -152,14 +203,14 @@ export const ContactDetail: React.FC = () => {
                             />
                         </div>
                         <Button
-                            variant="ghost"
+                            variant="notStupidGhost"
                             className="rounded-xl bg-zinc-900 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
                             onClick={() => addField(selectedContact.id, { label: 'New Field', value: '' })}
                         >
                             <Plus className="h-4 w-4" />
                         </Button>
                     </div>
-                    <div className="space-y-2">
+                    <div>
                         {filteredFields.map((field) => (
                             <FieldEditor
                                 key={field.id}
@@ -173,41 +224,49 @@ export const ContactDetail: React.FC = () => {
                 </CardContent>
             </Card>
 
-            <AlertDialog open={showExportDialog} onOpenChange={setShowExportDialog}>
-                <AlertDialogContent className="bg-zinc-900 border-zinc-800">
-                    <AlertDialogHeader>
-                        <AlertDialogTitle className="text-zinc-200">Select Export Format</AlertDialogTitle>
-                        <AlertDialogDescription className="text-zinc-400">
+            <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+                <DialogContent className="bg-zinc-950 border-zinc-800">
+                    <DialogHeader>
+                        <DialogTitle className="text-zinc-200">Select Export Format</DialogTitle>
+                        <DialogDescription className="text-zinc-400">
                             Please choose the file type you want to export the contact as:
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <div className="px-4 flex items-center gap-2">
-                        <Select value={exportFormat} onValueChange={(value) => setExportFormat(value as 'pdf' | 'markdown')}>
-                            <SelectTrigger className="w-full bg-zinc-800 border-zinc-700 text-zinc-300">
-                                <SelectValue placeholder="Select a filetype" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-zinc-800 border-zinc-700">
-                                <SelectGroup>
-                                    <SelectLabel className="text-zinc-400">File Types</SelectLabel>
-                                    <SelectItem value="pdf" className="text-zinc-300">PDF</SelectItem>
-                                    <SelectItem value="markdown" className="text-zinc-300">Markdown</SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                        <Button
-                            onClick={handleExport}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                            Export
-                        </Button>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className='flex flex-col justify-between gap-2'>
+                        <div className="px-4 flex items-center gap-2 w-full">
+                            <Select value={exportFormat} onValueChange={(value) => setExportFormat(value as 'pdf' | 'markdown')}>
+                                <SelectTrigger className="w-full bg-zinc-800 border-zinc-700 text-zinc-300">
+                                    <SelectValue placeholder="Select a filetype" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-zinc-800 border-zinc-700">
+                                    <SelectGroup>
+                                        <SelectLabel className="text-zinc-400">File Types</SelectLabel>
+                                        <SelectItem value="pdf" className="text-zinc-300">PDF</SelectItem>
+                                        <SelectItem value="markdown" className="text-zinc-300">Markdown</SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex flex-row justify-end gap-3 pt-6">
+                            <DialogClose asChild>
+                                <Button
+                                    variant="notStupidGhost"
+                                    className="text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 rounded-xl px-4 h-11"
+                                >
+                                    Cancel
+                                </Button>
+                            </DialogClose>
+                            <Button
+                                onClick={handleExport}
+                                className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-xl px-4 h-11 "
+                            >
+                                <Save className="h-4 w-4 mr-2" />
+                                Export
+                            </Button>
+                        </div>
                     </div>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700">
-                            Cancel
-                        </AlertDialogCancel>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                </DialogContent>
+            </Dialog>
         </motion.div>
     );
 };

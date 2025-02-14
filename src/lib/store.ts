@@ -13,7 +13,8 @@ export interface Contact {
     id: string;
     name: string;
     fields: ContactField[];
-    isFavorite?: boolean;  // Added this field
+    isFavorite?: boolean;
+    who: string;
 }
 
 interface ContactStore {
@@ -21,7 +22,7 @@ interface ContactStore {
     selectedContactId: string | null;
     searchQuery: string;
     fieldSearchQuery: string;
-    showFavoritesOnly: boolean;  // Added this field
+    showFavoritesOnly: boolean;  
     addContact: (contact: Omit<Contact, 'id'>) => void;
     updateContact: (id: string, contact: Partial<Contact>) => void;
     deleteContact: (id: string) => void;
@@ -32,8 +33,9 @@ interface ContactStore {
     setSearchQuery: (query: string) => void;
     setFieldSearchQuery: (query: string) => void;
     toggleFieldEdit: (contactId: string, fieldId: string) => void;
-    toggleFavorite: (id: string) => void;  // Added this function
-    setShowFavoritesOnly: (show: boolean) => void;  // Added this function
+    toggleFavorite: (id: string) => void;  
+    setShowFavoritesOnly: (show: boolean) => void;  
+    setWho: (id: string, who: string) => void;
 }
 
 export const useContactStore = create<ContactStore>()(
@@ -43,7 +45,7 @@ export const useContactStore = create<ContactStore>()(
             selectedContactId: null,
             searchQuery: '',
             fieldSearchQuery: '',
-            showFavoritesOnly: false,  // Added this field
+            showFavoritesOnly: false,  
             setSelectedContact: (id) => set({ selectedContactId: id }),
             setSearchQuery: (query) => set({ searchQuery: query }),
             setFieldSearchQuery: (query) => set({ fieldSearchQuery: query }),
@@ -62,14 +64,19 @@ export const useContactStore = create<ContactStore>()(
                     contacts: state.contacts.filter((c) => c.id !== id),
                     selectedContactId: state.selectedContactId === id ? null : state.selectedContactId,
                 })),
-            toggleFavorite: (id) =>  // Added this function
+            toggleFavorite: (id) =>
                 set((state) => ({
                     contacts: state.contacts.map((c) =>
                         c.id === id ? { ...c, isFavorite: !c.isFavorite } : c
                     ),
                 })),
-            setShowFavoritesOnly: (show) => set({ showFavoritesOnly: show }),  // Added this function
-            // ... rest of the store functions remain the same
+            setShowFavoritesOnly: (show) => set({ showFavoritesOnly: show }),  
+            setWho: (id: string, who: string) =>
+                set((state) => ({
+                    contacts: state.contacts.map((c) =>
+                        c.id === id ? { ...c, who: who } : c
+                    ),
+                })),
             addField: (contactId, field) =>
                 set((state) => ({
                     contacts: state.contacts.map((c) =>

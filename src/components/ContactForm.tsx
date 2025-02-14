@@ -27,6 +27,7 @@ export const ContactForm: React.FC<ContactFormProps> = ({ open, onClose }) => {
         addContact({
             name,
             fields: [],
+            who: 'Friend'
         });
         setName('');
         onClose();
