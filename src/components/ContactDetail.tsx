@@ -26,7 +26,7 @@ import { SelectGroup } from '@radix-ui/react-select';
 export const ContactDetail: React.FC = () => {
     const { contacts, selectedContactId, fieldSearchQuery, setFieldSearchQuery, addField, setSelectedContact, deleteContact } = useContactStore();
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-    const [selectedFieldId, setSelectedFieldId] = useState(null);
+    const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
     const [showExportDialog, setShowExportDialog] = useState(false);
     const [exportFormat, setExportFormat] = useState<'pdf' | 'markdown'>('pdf');
 
@@ -74,6 +74,7 @@ export const ContactDetail: React.FC = () => {
         }
         setShowExportDialog(false);
         toast({
+            variant: "dark",
             description: "Download has been initiated.",
         });
     };
@@ -121,7 +122,7 @@ export const ContactDetail: React.FC = () => {
                                         Nevermind
                                     </AlertDialogCancel>
                                     <AlertDialogAction 
-                                        onClick={() => deleteContact(selectedContactId)}
+                                        onClick={() => selectedContactId && deleteContact(selectedContactId)}
                                         className="bg-red-600 hover:bg-red-700"
                                     >
                                         Delete it! 🗑️
@@ -165,7 +166,7 @@ export const ContactDetail: React.FC = () => {
                                 contactId={selectedContact.id}
                                 field={field}
                                 selectedFieldId={selectedFieldId}
-                                setSelectedFieldId={setSelectedFieldId}
+                                setSelectedFieldId={(id: string | null) => setSelectedFieldId(id)}
                             />
                         ))}
                     </div>

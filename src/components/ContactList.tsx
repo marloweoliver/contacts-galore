@@ -66,10 +66,10 @@ export const ContactList: React.FC = () => {
                     </div>
                     <Button
                         size="icon"
-                        variant="ghost"
+                        variant="notStupidGhost"
                         className={`rounded-full bg-zinc-900 ${showFavoritesOnly
                             ? 'text-yellow-400 hover:text-yellow-500'
-                            : 'text-zinc-400 hover:text-zinc-100'
+                            : 'text-zinc-400 '
                             } hover:bg-zinc-800`}
                         onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
                     >
@@ -77,8 +77,8 @@ export const ContactList: React.FC = () => {
                     </Button>
                     <Button
                         size="icon"
-                        variant="ghost"
-                        className="rounded-full bg-zinc-900 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+                        variant="notStupidGhost"
+                        className="rounded-full bg-zinc-900 text-zinc-400  hover:bg-zinc-800"
                     >
                         ⋯
                     </Button>
@@ -96,8 +96,10 @@ export const ContactList: React.FC = () => {
                             drag="x"
                         >
                             <Button
-                                variant="ghost"
-                                className={`w-full justify-between px-4 py-3 h-16 mb-1 rounded-xl hover:bg-zinc-900 ${selectedContactId === contact.id ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'text-zinc-300'
+                                variant="notStupidGhost"
+                                className={`w-full justify-between px-4 py-3 h-16 mb-1 rounded-xl ${selectedContactId === contact.id
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                    : 'text-zinc-300'
                                     }`}
                                 onClick={() => setSelectedContact(contact.id)}
                             >
@@ -109,23 +111,25 @@ export const ContactList: React.FC = () => {
                                         </AvatarFallback>
                                     </Avatar>
                                     <div className="flex flex-col items-start">
-                                        <span className="font-medium">{contact.name}</span>
-                                        <span className="text-sm text-zinc-500">Software Engineer</span>
+                                        {/* Ensure the text color remains consistent */}
+                                        <span className={'font-medium text-white'}>
+                                            {contact.name}
+                                        </span>
+                                        <span className="text-sm text-zinc-500">test Engineer</span>
                                     </div>
                                 </div>
                                 <Button
-                                    variant="ghost"
+                                    variant="notStupidGhost"
                                     size="icon"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         toggleFavorite(contact.id);
                                     }}
+                                    className="active:scale-95"
                                 >
                                     <Star className={`h-8 w-8 ${contact.isFavorite
                                         ? 'text-yellow-400'
-                                        : selectedContactId === contact.id
-                                            ? 'text-white'
-                                            : 'text-zinc-500'
+                                        : 'text-zinc-500'
                                         }`} />
                                 </Button>
                             </Button>
