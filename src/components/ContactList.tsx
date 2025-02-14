@@ -1,20 +1,58 @@
 'use client'
-import React from 'react';
+import React, { useState } from 'react';
 import { useContactStore } from '../lib/store';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Star, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 
 export const ContactList: React.FC = () => {
-    const { contacts, selectedContactId, searchQuery, setSelectedContact, setSearchQuery, deleteContact } = useContactStore();
-    const filteredContacts = contacts.filter(contact =>
-        contact.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const {
+        contacts,
+        selectedContactId,
+        searchQuery,
+        showFavoritesOnly,
+        setSelectedContact,
+        setSearchQuery,
+        deleteContact,
+        toggleFavorite,
+        setShowFavoritesOnly
+    } = useContactStore();
+
+    const filteredContacts = contacts
+        .filter(contact =>
+            contact.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+            (!showFavoritesOnly || contact.isFavorite)
+        );
+    const throwPopUp = () => {
+        return (
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="outline">Show Dialog</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete your
+                            account and remove your data from our servers.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction>Continue</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        )
+    }
+    const [delPopUp, setDelPopUp] = useState(false)
 
     return (
         <div className="h-full flex flex-col bg-zinc-950">
+
             <div className="p-4">
                 <div className="relative flex items-center gap-2">
                     <div className="relative flex-1">
@@ -29,7 +67,11 @@ export const ContactList: React.FC = () => {
                     <Button
                         size="icon"
                         variant="ghost"
-                        className="rounded-full bg-zinc-900 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+                        className={`rounded-full bg-zinc-900 ${showFavoritesOnly
+                            ? 'text-yellow-400 hover:text-yellow-500'
+                            : 'text-zinc-400 hover:text-zinc-100'
+                            } hover:bg-zinc-800`}
+                        onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
                     >
                         <Star className="h-4 w-4" />
                     </Button>
@@ -52,18 +94,11 @@ export const ContactList: React.FC = () => {
                             exit={{ opacity: 0, y: -20 }}
                             transition={{ duration: 0.2 }}
                             drag="x"
-                            dragConstraints={{ left: 0, right: 100 }}
-                            onDragEnd={(event, info) => {
-                                if (info.offset.x > 100) {
-                                    deleteContact(contact.id);
-                                }
-                            }}
                         >
                             <Button
                                 variant="ghost"
-                                className={`w-full justify-between px-4 py-3 h-16 mb-1 rounded-xl hover:bg-zinc-900 ${
-                                    selectedContactId === contact.id ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'text-zinc-300'
-                                }`}
+                                className={`w-full justify-between px-4 py-3 h-16 mb-1 rounded-xl hover:bg-zinc-900 ${selectedContactId === contact.id ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'text-zinc-300'
+                                    }`}
                                 onClick={() => setSelectedContact(contact.id)}
                             >
                                 <div className="flex items-center gap-3">
@@ -78,9 +113,21 @@ export const ContactList: React.FC = () => {
                                         <span className="text-sm text-zinc-500">Software Engineer</span>
                                     </div>
                                 </div>
-                                <Star className={`h-4 w-4 ${
-                                    selectedContactId === contact.id ? 'text-white' : 'text-zinc-500'
-                                }`} />
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleFavorite(contact.id);
+                                    }}
+                                >
+                                    <Star className={`h-8 w-8 ${contact.isFavorite
+                                        ? 'text-yellow-400'
+                                        : selectedContactId === contact.id
+                                            ? 'text-white'
+                                            : 'text-zinc-500'
+                                        }`} />
+                                </Button>
                             </Button>
                         </motion.div>
                     ))}
